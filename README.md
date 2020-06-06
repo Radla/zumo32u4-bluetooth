@@ -5,6 +5,8 @@
 -   HM-10 RX pin to a voltage divider and then to zumo TX
 -   HM-10 GND to GND
 
+Detailed very helpful HM-10 description: http://www.martyncurrey.com/hm-10-bluetooth-4ble-modules/#arduinoToHM-10 
+
 -   Send "fwd", "rev", "lft", "rgt" or "sensor" from an smartphone bluetooth terminal App like BLE-Terminal to control the robot.
 -   "sensor" returns the current primity sensor values
 -   the robot should automatically stop before obstacles.
