@@ -1,14 +1,16 @@
 /* 
 - HM-10
-- korrigertes Geradeausfahren mit Encoder
-- Drehung nur über delay
+- korrigertes Geradeausfahren mit gyro
+- Drehung über gyro
 */
 #include <Zumo32U4.h>
+#include "TurnSensor.h"
 
 Zumo32U4ProximitySensors proxSensors;
 Zumo32U4Encoders encoders;
 Zumo32U4Motors motors;
 Zumo32U4ButtonA buttonA;
+L3G gyro;
 
 #define Kp 1
 
@@ -41,6 +43,10 @@ void setup()
   // Get the proximity sensors initialized
   proxSensors.initThreeSensors();
   resetEncoders();
+  turnSensorSetup();
+  delay(500);
+  turnSensorReset();
+
   Serial1.begin(9600);
 }
 
@@ -110,6 +116,7 @@ void loop()
     straight();
    else if (state == scan_left_state)
     turnLeft();
+    turnLeft(90);
   else if (state == scan_right_state)
     turnRight();
   else if (state == reverse_state) {
@@ -145,22 +152,6 @@ void straight() {
     motors.setSpeeds(curSpeed, curSpeed + rightOffset());
 }
 
-void turnRight() {
-    motors.setSpeeds(TURN_SPEED, -TURN_SPEED);
-    delay(500);
-     curSpeed = 0;
-    resetEncoders();
-    state = pause_state;
-
-}
-void turnLeft() {
-    motors.setSpeeds(-TURN_SPEED, TURN_SPEED);
-    delay(500);
-     curSpeed = 0;
-    resetEncoders();
-    state = pause_state;
-
-}
 void stop() {
   curSpeed = 0;
   motors.setSpeeds(0, 0);
@@ -168,4 +159,36 @@ void stop() {
 
 void reverse() {
   motors.setSpeeds(-curSpeed, -curSpeed);
+}
+// Turn left
+void turnLeft(int degrees) {
+  turnSensorReset();
+  motors.setSpeeds(-TURN_SPEED, TURN_SPEED);
+  int angle = 0;
+  do {
+    delay(1);
+    turnSensorUpdate();
+    angle = (((int32_t)turnAngle >> 16) * 360) >> 16;
+    Serial1.println(angle);
+  } while (angle < degrees);
+    resetEncoders();
+    state = pause_state;
+   curSpeed = 0;
+}
+
+// Turn right
+void turnRight(int degrees) {
+  turnSensorReset();
+  motors.setSpeeds(TURN_SPEED, -TURN_SPEED);
+  int angle = 0;
+  do {
+    delay(1);
+    turnSensorUpdate();
+    angle = (((int32_t)turnAngle >> 16) * 360) >> 16;
+    Serial1.println(angle);
+  } while (angle > -degrees);
+      resetEncoders();
+    state = pause_state;
+   curSpeed = 0;
+
 }
