@@ -1,0 +1,6 @@
+{
+    "programmer": "AVR ISP",
+    "board": "pololu-a-star:avr:a-star32U4",
+    "sketch": "zumo32u4-bluetooth.ino",
+    "port": "/dev/cu.usbmodem142421"
+}

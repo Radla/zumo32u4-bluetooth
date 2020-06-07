@@ -1,8 +1,10 @@
 /* 
-- HM-10
-- korrigertes Geradeausfahren mit gyro
-- Drehung über gyro
+- HM-10 Control
+- go straight with gyro
+- rotate with gyro
+- stop if obstacle ahead
 */
+#include <Wire.h>
 #include <Zumo32U4.h>
 #include "TurnSensor.h"
 
@@ -11,12 +13,11 @@ Zumo32U4Encoders encoders;
 Zumo32U4Motors motors;
 Zumo32U4ButtonA buttonA;
 L3G gyro;
+Zumo32U4LCD lcd;
 
-#define Kp 1
-
-const uint16_t MOTOR_SPEED = 250;
+const uint16_t MOTOR_SPEED = 350;
 const uint16_t TURN_SPEED = 190;
-const int ACCELERATION = 4;
+const int ACCELERATION = 2;
 
 int curSpeed = 0;
 int obstacleDistance = 6;
@@ -40,14 +41,14 @@ String msg;
 // --- Setup function
 void setup()
 {
+  Serial1.begin(9600);
   // Get the proximity sensors initialized
   proxSensors.initThreeSensors();
+  // gyro calibration, don't move!!!
   resetEncoders();
   turnSensorSetup();
   delay(500);
   turnSensorReset();
-
-  Serial1.begin(9600);
 }
 
 void resetEncoders() {
@@ -113,19 +114,18 @@ void loop()
     stop();
     curSpeed = 0;
   } else if (state == forward_state)
-    straight();
+    forward();
    else if (state == scan_left_state)
-    turnLeft();
     turnLeft(90);
   else if (state == scan_right_state)
-    turnRight();
+    turnRight(90);
   else if (state == reverse_state) {
     reverse();
-    delay(500);
-    turnLeft();
-    turnLeft();
-    turnLeft();
+    delay(250);
+     turnLeft(135);
+    delay(250);
     state = pause_state;
+    curSpeed = 0;
     resetEncoders();
   }
 
@@ -144,16 +144,17 @@ void loop()
     Serial1.println(str);
   }
 }
-// go straight via encoders
-int rightOffset() {
-  return Kp*(encoders.getCountsLeft() - encoders.getCountsRight()); 
-}
-void straight() {
-    motors.setSpeeds(curSpeed, curSpeed + rightOffset());
+
+void forward() {
+  // Get out heading
+  turnSensorUpdate();
+  int angle = (((int32_t)turnAngle >> 16) * 360) >> 16;
+
+  // Move foward, adjusting motor speed to hold heading
+  motors.setSpeeds(curSpeed + (angle * 5), curSpeed - (angle * 5));
 }
 
 void stop() {
-  curSpeed = 0;
   motors.setSpeeds(0, 0);
 }
 
@@ -169,9 +170,10 @@ void turnLeft(int degrees) {
     delay(1);
     turnSensorUpdate();
     angle = (((int32_t)turnAngle >> 16) * 360) >> 16;
-    Serial1.println(angle);
+    //Serial1.println(angle);
   } while (angle < degrees);
     resetEncoders();
+    turnSensorReset();
     state = pause_state;
    curSpeed = 0;
 }
@@ -185,9 +187,10 @@ void turnRight(int degrees) {
     delay(1);
     turnSensorUpdate();
     angle = (((int32_t)turnAngle >> 16) * 360) >> 16;
-    Serial1.println(angle);
+    //Serial1.println(angle);
   } while (angle > -degrees);
       resetEncoders();
+      turnSensorReset();
     state = pause_state;
    curSpeed = 0;
 
